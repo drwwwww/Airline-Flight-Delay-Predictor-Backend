@@ -58,13 +58,34 @@ def loadArtifacts():
 def health():
     return {"ok": True, "model_loaded": model is not None}
 
-def normalizeIata(s):
+@app.post("/predict", response_model=FlightOut)
+def predict(ff: FlightFeatures):
+    if model is None or featureMeta is None:
+        raise HTTPException(status_code=500, detail="Model not loaded")
+
+    try:
+        df = toDataFrame(ff)                    # 1-row, training column order
+        p = float(model.predict_proba(df)[0, 1])# positive-class probability
+        delayed = p >= 0.5                      # inline decision (no helper)
+        return {"delayProb": p, "delayed": delayed}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Prediction failed: {e}")
+    
+def Predictionout():
+    delayProb = 0.0
+    delayed = False
+
+def normalize(s):
     return s.strip().upper()
 
 def getColumns():
     return featureMeta["numeric"] + featureMeta["categorical"]
 
-@app.post("/predict")
-def Predictionout():
-    delayProb = 0.0
-    delayed = False
+def toDataFrame(ff):
+    row = {
+        "depHour": ff.depHour,
+        "origin":  normalize(ff.origin),
+        "dest":    normalize(ff.dest),
+    }
+    cols = getColumns()
+    return pd.DataFrame([row], columns=cols)

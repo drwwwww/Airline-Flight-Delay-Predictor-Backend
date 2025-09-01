@@ -1,5 +1,1 @@
-{
-  "numeric": ["depHour"],
-  "categorical": ["origin", "dest"]
-}
-
+{ "numeric": ["depHour"], "categorical": ["origin", "dest"] }
